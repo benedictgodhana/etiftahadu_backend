@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -19,29 +18,40 @@ use App\Http\Controllers\TicketTransactionController;
 |
 */
 
-
-Route::get('/ticket-transactions', [TicketTransactionController::class, 'index']);
-Route::post('/ticket', [TicketTransactionController::class, 'store']);
-
-Route::get('/routes', [RouteController::class, 'index']);
-Route::post('/addRoute', [RouteController::class, 'store']);
-Route::delete('/routes/{id}', [RouteController::class, 'destroy']);
-Route::post('register', [AuthController::class, 'register']);
-Route::post('login', [AuthController::class, 'login'])->name('login'); // Explicitly name the route
-Route::post('/add-card', [CardController::class, 'store'])->name('add-card');
-Route::get('/card-topups', [CardTopupController::class, 'index']);
-Route::get('/card-topups/{id}', [CardTopupController::class, 'show']);
-Route::put('/card-topups/{id}', [CardTopupController::class, 'update']);
-Route::delete('/card-topups/{id}', [CardTopupController::class, 'destroy']);
-Route::post('/fetch-card', [CardController::class, 'fetchCardData']);
-Route::post('/top-up', [CardTopupController::class, 'topUpCard']);
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-// Protected Routes (requires authentication)
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Ticket transactions
+    Route::get('/ticket-transactions', [TicketTransactionController::class, 'index']);
+    Route::post('/ticket', [TicketTransactionController::class, 'store']);
+    Route::get('/transactions/total/monthly', [TicketTransactionController::class, 'totalMonthlyTransactions']);
+    Route::get('/transactions/total/today', [TicketTransactionController::class, 'totalTodaysTransactions']);
+
+    // Routes management
+    Route::get('/routes', [RouteController::class, 'index']);
+    Route::post('/addRoute', [RouteController::class, 'store']);
+    Route::put('/routes/{id}', [RouteController::class, 'update']);
+    Route::delete('/routes/{id}', [RouteController::class, 'destroy']);
+    Route::post('/findRoute', [RouteController::class, 'findRoute']);
+    Route::get('/routes/count', [RouteController::class, 'getRoutesCount']);
+
+
+    // Card management
+    Route::post('/add-card', [CardController::class, 'store'])->name('add-card');
+    Route::post('/fetch-card', [CardController::class, 'fetchCardData']);
+    Route::get('/active-cards', [CardController::class, 'fetchActiveCards']);
+
+    // Card top-up management
+    Route::get('/card-topups', [CardTopupController::class, 'index']);
+    Route::get('/card-topups/{id}', [CardTopupController::class, 'show']);
+    Route::put('/card-topups/{id}', [CardTopupController::class, 'update']);
+    Route::delete('/card-topups/{id}', [CardTopupController::class, 'destroy']);
+    Route::post('/top-up', [CardTopupController::class, 'topUpCard']);
+
+    // User-related routes
     Route::post('logout', [AuthController::class, 'logout']); // Logout route
     Route::get('user', [AuthController::class, 'user']); // Get authenticated user details
-
 });
+
+// Authentication routes (no authentication required)
+Route::post('register', [AuthController::class, 'register']);
+Route::post('login', [AuthController::class, 'login'])->name('login'); // Explicitly name the route

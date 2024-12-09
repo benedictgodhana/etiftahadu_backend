@@ -21,4 +21,10 @@ class Card extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+
+    public function topups()
+    {
+        return $this->hasMany(CardTopup::class);
+    }
 }

@@ -1,13 +1,13 @@
 <?php
 namespace App\Models;
 
-use Tymon\JWTAuth\Contracts\JWTSubject; // Import the JWTSubject contract
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens; // Import Sanctum's HasApiTokens trait
 
-class User extends Authenticatable implements JWTSubject // Implement JWTSubject
+class User extends Authenticatable
 {
-    use Notifiable;
+    use Notifiable, HasApiTokens; // Adding the roles trait here
 
     /**
      * The attributes that are mass assignable.
@@ -43,23 +43,9 @@ class User extends Authenticatable implements JWTSubject // Implement JWTSubject
         'email_verified_at' => 'datetime',
     ];
 
-    /**
-     * Get the unique identifier for the user.
-     *
-     * @return mixed
-     */
-    public function getJWTIdentifier()
-    {
-        return $this->getKey(); // Typically returns the user's ID
-    }
 
-    /**
-     * Return a key value array, containing any custom claims.
-     *
-     * @return array
-     */
-    public function getJWTCustomClaims()
+    public function topups()
     {
-        return []; // You can add custom claims here if necessary
+        return $this->hasMany(CardTopup::class);
     }
 }

@@ -33,4 +33,10 @@ class Route extends Model
             ->where('to', $to)
             ->first(); // Fetch the first matching route
     }
+
+
+    public function ticketTransactions()
+    {
+        return $this->hasMany(TicketTransaction::class);
+    }
 }

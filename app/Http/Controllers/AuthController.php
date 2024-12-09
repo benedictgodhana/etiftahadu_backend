@@ -1,12 +1,12 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\User;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Exceptions\JWTException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -51,39 +51,39 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
+        // Check if user exists by username
         $user = User::where('username', $request->username)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['error' => 'Invalid credentials'], 401);
+            throw ValidationException::withMessages([
+                'error' => ['Invalid credentials']
+            ]);
         }
 
-        try {
-            $token = JWTAuth::fromUser($user);
-            return response()->json(['token' => $token, 'user' => $user], 200);
-        } catch (JWTException $e) {
-            return response()->json(['error' => 'Could not create token'], 500);
-        }
+        // Create token
+        $token = $user->createToken('AppName')->plainTextToken;
+
+        // Return token and user details
+        return response()->json(['token' => $token, 'user' => $user], 200);
     }
 
-    // Get authenticated user details
-    public function user()
-    {
-        try {
-            $user = JWTAuth::parseToken()->authenticate();
-            return response()->json(['user' => $user], 200);
-        } catch (JWTException $e) {
-            return response()->json(['error' => 'Failed to fetch user details'], 400);
-        }
-    }
+
+public function user(Request $request)
+{
+    // Get the authenticated user using the Auth facade
+    $user = Auth::user();
+
+    // Return the authenticated user
+    return response()->json(['user' => $user], 200);
+}
 
     // Logout user
     public function logout(Request $request)
     {
-        try {
-            JWTAuth::invalidate(JWTAuth::getToken());
-            return response()->json(['message' => 'Logged out successfully'], 200);
-        } catch (JWTException $e) {
-            return response()->json(['error' => 'Failed to log out, token invalid or expired'], 400);
-        }
+        // Revoke the token of the authenticated user
+        $request->user()->currentAccessToken()->delete();
+
+        // Return response
+        return response()->json(['message' => 'Logged out successfully'], 200);
     }
 }

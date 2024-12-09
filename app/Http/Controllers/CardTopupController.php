@@ -87,4 +87,19 @@ class CardTopupController extends Controller
             ], 500);
         }
     }
+    public function index()
+    {
+        // Fetch all card top-ups with associated card and user data, with pagination (8 records per page)
+        $topups = CardTopup::with(['card', 'user'])->paginate(8);
+
+        // Return the data as JSON with pagination info
+        return response()->json(['topups' => $topups]);
+    }
+
+    public function show($id)
+    {
+        // Fetch a single card top-up record by ID
+        $topup = CardTopup::findOrFail($id);
+        return response()->json(['data' => $topup]);
+    }
 }

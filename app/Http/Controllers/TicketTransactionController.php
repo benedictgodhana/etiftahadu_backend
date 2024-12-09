@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\TicketPurchasedMail;
 use Barryvdh\DomPDF\Facade as PDF;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class TicketTransactionController extends Controller
 {
@@ -92,11 +94,63 @@ class TicketTransactionController extends Controller
         Mail::to($card->email)->send($email);
     }
 
-    // Fetch all transactions
-    public function index()
+    public function index(Request $request)
     {
-        $transactions = TicketTransaction::with(['route', 'card'])->get();
+        $query = TicketTransaction::with(['route', 'card']);
+
+        // Filter by ticket number (if provided)
+        if ($request->has('ticket_number') && $request->ticket_number) {
+            $query->where('ticket_number', 'like', '%' . $request->ticket_number . '%');
+        }
+
+        // Filter by route (if provided)
+        if ($request->has('route') && $request->route && $request->route != 'All') {
+            $query->whereHas('route', function($q) use ($request) {
+                $q->where('from', 'like', '%' . $request->route . '%')
+                  ->orWhere('to', 'like', '%' . $request->route . '%');
+            });
+        }
+
+        // Filter by date range (if provided)
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+        }
+
+        $transactions = $query->get();
+
+        // Debugging: Check the transactions data
+        Log::info('Transactions:', $transactions->toArray());
 
         return response()->json(['data' => $transactions]);
+    }
+
+
+    public function totalMonthlyTransactions()
+    {
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
+
+        // Calculate the total transaction amount for the current month
+        $totalMonthly = TicketTransaction::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+                                          ->sum('amount');
+
+        return response()->json([
+            'total_monthly_transactions' => $totalMonthly
+        ]);
+    }
+
+    // Fetch total transactions for today
+    public function totalTodaysTransactions()
+    {
+        $startOfDay = Carbon::now()->startOfDay();
+        $endOfDay = Carbon::now()->endOfDay();
+
+        // Calculate the total transaction amount for today
+        $totalToday = TicketTransaction::whereBetween('created_at', [$startOfDay, $endOfDay])
+                                       ->sum('amount');
+
+        return response()->json([
+            'total_todays_transactions' => $totalToday
+        ]);
     }
 }

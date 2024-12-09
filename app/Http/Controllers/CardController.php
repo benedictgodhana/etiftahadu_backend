@@ -105,4 +105,34 @@ class CardController extends Controller
         ], 404);
     }
 
+
+    public function fetchActiveCards(Request $request)
+    {
+        try {
+            // Fetch all active cards
+            $activeCards = Card::where('status', 'Active')->get();
+
+            // Count the number of active cards
+            $activeCardsCount = $activeCards->count();
+
+            // Return success response with the active cards and the count
+            return response()->json([
+                'success' => true,
+                'message' => 'Fetched all active cards',
+                'data' => [
+                    'active_cards_count' => $activeCardsCount,
+                    'active_cards' => $activeCards,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Handle errors and return failure response
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch active cards',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }

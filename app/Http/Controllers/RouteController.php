@@ -36,15 +36,31 @@ class RouteController extends Controller
     /**
      * List all available routes.
      */
-    public function index()
-    {
-        $routes = Route::all();
+   public function index()
+{
+    // Fetch all routes from the database
+    $routes = Route::all();
 
-        return response()->json([
-            'success' => true,
-            'data' => $routes,
-        ]);
-    }
+    // Get the total count of all routes
+
+    return response()->json([
+        'success' => true,
+        'data' => $routes,
+    ]);
+}
+
+public function getRoutesCount()
+{
+    // Fetch the total count of all routes from the database
+    $routesCount = Route::count();
+
+    return response()->json([
+        'success' => true,
+        'data' => $routesCount,
+    ]);
+}
+
+
 
     /**
      * Create a new route.
@@ -57,11 +73,12 @@ class RouteController extends Controller
             'fare' => 'required|numeric|min:0',
         ]);
 
+        // Create the route and associate it with the authenticated user
         $route = Route::create([
             'from' => $validated['from'],
             'to' => $validated['to'],
             'fare' => $validated['fare'],
-            'user_id' => 1, // Associate the route with the current authenticated user
+            'user_id' => auth()->id(), // Use the authenticated user's ID
         ]);
 
         return response()->json([
@@ -84,6 +101,14 @@ class RouteController extends Controller
 
         $route = Route::findOrFail($id);
 
+        // Ensure the authenticated user is the one who created the route
+        if ($route->user_id !== auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to update this route',
+            ], 403);
+        }
+
         $route->update($validated);
 
         return response()->json([
@@ -99,6 +124,14 @@ class RouteController extends Controller
     public function destroy($id)
     {
         $route = Route::findOrFail($id);
+
+        // Ensure the authenticated user is the one who created the route
+        if ($route->user_id !== auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to delete this route',
+            ], 403);
+        }
 
         $route->delete();
 

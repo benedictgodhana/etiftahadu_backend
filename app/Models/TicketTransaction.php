@@ -24,4 +24,18 @@ class TicketTransaction extends Model
             $transaction->ticket_number = 'TICKET-' . strtoupper(uniqid());
         });
     }
+
+
+    public function route()
+{
+    return $this->belongsTo(Route::class);
+}
+
+
+// In TicketTransaction.php model
+public function card()
+{
+    return $this->belongsTo(Card::class);  // Adjust this depending on the actual relationship
+}
+
 }
