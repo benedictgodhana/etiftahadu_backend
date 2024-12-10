@@ -6,6 +6,7 @@ use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardTopupController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TicketTransactionController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,6 +51,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // User-related routes
     Route::post('logout', [AuthController::class, 'logout']); // Logout route
     Route::get('user', [AuthController::class, 'user']); // Get authenticated user details
+
+Route::get('users', [UserController::class, 'index']); // Display users
+Route::post('users', [UserController::class, 'store']); // Add user
+Route::put('users/{id}', [UserController::class, 'update']); // Update user
+Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']); // Deactivate user
+Route::get('/user-count', [UserController::class, 'getUserCount']);
+
+
 });
 
 // Authentication routes (no authentication required)

@@ -17,11 +17,11 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'username',
         'password',
         'phone',
-        'device_code',
-        'acc_type'
+        'username',
+        'status',
+        'created_by',
     ];
 
     /**
@@ -48,4 +48,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(CardTopup::class);
     }
+
+    // In your model (e.g., Post)
+public function creator()
+{
+    return $this->belongsTo(User::class, 'created_by');
+}
+
 }
