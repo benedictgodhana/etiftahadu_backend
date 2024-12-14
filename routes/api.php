@@ -1,9 +1,11 @@
 <?php
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardTopupController;
+use App\Http\Controllers\OfferController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TicketTransactionController;
 use App\Http\Controllers\UserController;
@@ -20,6 +22,19 @@ use App\Http\Controllers\UserController;
 */
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/offers', [OfferController::class, 'index']);
+
+    // Show the form to create a new offer
+    Route::post('/offers', [OfferController::class, 'store']);
+
+    // Display the specified offer
+    Route::get('/offers/{offer}', [OfferController::class, 'show']);
+
+    // Show the form to edit the specified offer
+    Route::put('/offers/{offer}', [OfferController::class, 'update']);
+
+    // Remove the specified offer
+    Route::delete('/offers/{offer}', [OfferController::class, 'destroy']);
 
     // Ticket transactions
     Route::get('/ticket-transactions', [TicketTransactionController::class, 'index']);
@@ -52,13 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('logout', [AuthController::class, 'logout']); // Logout route
     Route::get('user', [AuthController::class, 'user']); // Get authenticated user details
 
-Route::get('users', [UserController::class, 'index']); // Display users
-Route::post('users', [UserController::class, 'store']); // Add user
-Route::put('users/{id}', [UserController::class, 'update']); // Update user
-Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']); // Deactivate user
-Route::get('/user-count', [UserController::class, 'getUserCount']);
-
-
+    Route::get('users', [UserController::class, 'index']); // Display users
+    Route::post('users', [UserController::class, 'store']); // Add user
+    Route::put('users/{id}', [UserController::class, 'update']); // Update user
+    Route::patch('users/{id}/deactivate', [UserController::class, 'deactivate']); // Deactivate user
+    Route::get('/user-count', [UserController::class, 'getUserCount']);
 });
 
 // Authentication routes (no authentication required)
