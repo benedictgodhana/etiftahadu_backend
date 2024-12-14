@@ -20,9 +20,9 @@ use App\Http\Controllers\UserController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-Route::get('/offers', [OfferController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/offers', [OfferController::class, 'index']);
 
     // Show the form to create a new offer
     Route::post('/offers', [OfferController::class, 'store']);
