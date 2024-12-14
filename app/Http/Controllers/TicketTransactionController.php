@@ -33,21 +33,25 @@ class TicketTransactionController extends Controller
 
         // Ensure the card has enough balance
         if ($currentBalance < $validated['amount']) {
-            return response()->json(['error' => 'Insufficient balance'], 400);
+            return response([
+                'error' => 'Insufficient balance.',
+                'message' => 'Please top-up and try again.'
+            ], 400);
         }
 
         // Check if there's an existing CardTransaction record for this card
         $existingTransaction = CardTransaction::where('card_id', $validated['card_id'])->latest()->first();
 
-        if ($existingTransaction) {
-            // Update the existing transaction to deduct the fare
-            $existingTransaction->amount -= $validated['amount']; // Deduct the amount from the existing transaction
-            $existingTransaction->save(); // Save the updated transaction
-        } else {
-            // If no existing transaction, don't create a new one (as per your request)
-            // You can choose to handle this case differently or throw an error if needed.
-            return response()->json(['error' => 'No previous transaction found for this card.'], 400);
+        if (!$existingTransaction) {
+            return response([
+                'error' => 'No previous transaction found for this card.',
+                'message' => 'Please ensure you have a valid transaction record.'
+            ], 400);
         }
+
+        // Update the existing transaction to deduct the fare
+        $existingTransaction->amount -= $validated['amount']; // Deduct the amount from the existing transaction
+        $existingTransaction->save(); // Save the updated transaction
 
         // Create the transaction record in the TicketTransaction table
         $transaction = TicketTransaction::create($validated);
@@ -58,8 +62,15 @@ class TicketTransactionController extends Controller
         // Send email to the card holder with the receipt attached
         $this->sendTicketEmail($card, $route, $validated['amount']);
 
-        return response()->json(['success' => true, 'data' => $transaction], 201);
+        return response([
+            'success' => true,
+            'message' => 'Ticket purchased successfully!',
+            'ticketNumber' => $transaction->ticket_number,
+            'route' => $route,
+            'newBalance' => $existingTransaction->amount // Optional: Return updated card balance
+        ], 201);
     }
+
 
     // Send email after ticket purchase
     protected function sendTicketEmail($card, $route, $amount)
