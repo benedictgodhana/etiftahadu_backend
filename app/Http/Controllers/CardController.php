@@ -92,6 +92,8 @@ class CardController extends Controller
                 'data' => [
                     'serial_number' => $nfcCard->serial_number,
                     'name' => $nfcCard->name,
+                    'email' => $nfcCard->email,
+                    'tel' => $nfcCard->tel,
                     'card_id' => $nfcCard->id,
                     'balance' => $balance, // Include balance from the last transaction
                 ]
