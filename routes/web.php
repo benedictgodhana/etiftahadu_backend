@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Mail\TestEmail;
+use Illuminate\Support\Facades\Mail;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -12,6 +15,21 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+
+
+Route::get('/send-test-email', function () {
+    $toEmail = 'benedictgodhana7@gmail.com';
+    $data = [
+        'name' => 'Benedict Godhana',
+        'messageContent' => 'This is a test email sent from the Laravel application.'
+    ];
+
+    Mail::to($toEmail)->send(new TestEmail($data));
+
+    return "Test email sent to {$toEmail}!";
+});
+
 
 Route::get('/', function () {
     return view('welcome');
