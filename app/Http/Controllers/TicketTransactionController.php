@@ -12,6 +12,10 @@ use Barryvdh\DomPDF\Facade as PDF;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Mike42\Escpos\EscposImage;
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Mike42\Escpos\Printer;
 
 class TicketTransactionController extends Controller
 {
@@ -164,4 +168,58 @@ class TicketTransactionController extends Controller
             'total_todays_transactions' => $totalToday
         ]);
     }
+
+
+    public function printReceipt($ticketId)
+    {
+        try {
+            // Retrieve the transaction details
+            $transaction = TicketTransaction::with(['route', 'card'])->findOrFail($ticketId);
+
+            // ETR printer connection setup (Adjust to your system's connection details)
+            $connector = new NetworkPrintConnector("192.168.0.100", 9100);
+            // Create printer instance
+            $printer = new Printer($connector);
+
+            // Print logo (if exists)
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            try {
+                $logoPath = public_path('images/logo.png'); // Update with your logo path
+                if (file_exists($logoPath)) {
+                    $logo = EscposImage::load($logoPath, false);
+                    $printer->graphics($logo);
+                }
+            } catch (\Exception $e) {
+                // Handle image load failure
+                $printer->text("NAMIBIA COMMUTER HAULAGE\n");
+            }
+
+            $printer->text("-----------------------------\n");
+
+            // Print receipt details
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->text("Ticket Number: " . $transaction->ticket_number . "\n");
+            $printer->text("Route: " . $transaction->route->from . " to " . $transaction->route->to . "\n");
+            $printer->text("Amount: KES " . number_format($transaction->amount, 2) . "\n");
+            $printer->text("Date: " . $transaction->created_at->format('Y-m-d H:i:s') . "\n");
+            $printer->text("-----------------------------\n");
+
+            // Print QR code
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->qrCode($transaction->ticket_number);
+
+            // Closing message
+            $printer->text("\nThank you for using our service!\n");
+
+            // Finish printing
+            $printer->cut();
+            $printer->close();
+
+            return response()->json(['message' => 'Receipt printed successfully.'], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to print receipt.', 'details' => $e->getMessage()], 500);
+        }
+    }
+
 }

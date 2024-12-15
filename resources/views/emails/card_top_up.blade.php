@@ -78,9 +78,9 @@
             <p>Your card has been topped up successfully. Here are the details:</p>
 
             <ul>
-                <li><strong>Amount Topped Up:</strong> Ksh.{{ number_format($topUp->amount, 2) }}</li>
+                <li><strong>Amount Topped Up:</strong> NAD {{ number_format($topUp->amount, 2) }}</li>
                 <li><strong>Transaction Reference:</strong> {{ $topUp->transaction_reference }}</li>
-                <li><strong>New Balance:</strong> Ksh.{{ number_format($newBalance, 2) }}</li>
+                <li><strong>New Balance:</strong> NAD {{ number_format($newBalance, 2) }}</li>
             </ul>
 
             <p>Thank you for using our service!</p>

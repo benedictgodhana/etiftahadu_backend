@@ -40,8 +40,8 @@
     <p>Dear {{ $name }},</p>
     <p>You have successfully purchased a ticket for the route:</p>
     <p><strong>From:</strong> {{ $from }} <strong>To:</strong> {{ $to }}</p>
-    <p class="amount">Amount: {{ $amount }}</p>
-    <p class="balance">Your new balance is: {{ $new_balance }}</p>
+    <p class="amount">Amount: NAD {{ number_format($amount, 2) }}</p>
+    <p class="balance">Your new balance is: NAD {{ number_format($new_balance, 2) }}</p>
     <p>Thank you for choosing Namibia Contract Haulage for your travel needs!</p>
 
     <div class="footer">

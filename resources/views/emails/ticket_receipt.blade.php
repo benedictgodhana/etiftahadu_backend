@@ -104,8 +104,8 @@
             <p><span class="highlight">Customer Name:</span> {{ $name }}</p>
             <p><span class="highlight">Route:</span> {{ $from }} to {{ $to }}</p>
             <div class="divider"></div>
-            <p><span class="highlight">Amount Paid:</span> <span class="amount">{{ $amount }}</span></p>
-            <p><span class="highlight">New Balance:</span> <span class="amount">{{ $new_balance }}</span></p>
+            <p><span class="highlight">Amount Paid:</span> <span class="amount">NAD {{ number_format($amount, 2) }}</span></p>
+            <p><span class="highlight">New Balance:</span> <span class="amount">NAD {{ number_format($new_balance, 2) }}</span></p>
         </div>
 
         <!-- Footer -->

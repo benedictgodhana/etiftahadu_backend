@@ -22,6 +22,10 @@ use App\Http\Controllers\UserController;
 */
 
 Route::middleware('auth:sanctum')->group(function () {
+
+
+    Route::get('/tickets/{id}/print', [TicketTransactionController::class, 'printReceipt']);
+
     Route::get('/offers', [OfferController::class, 'index']);
 
     // Show the form to create a new offer
