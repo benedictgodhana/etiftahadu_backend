@@ -4,10 +4,11 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // Import Sanctum's HasApiTokens trait
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use Notifiable, HasApiTokens; // Adding the roles trait here
+    use Notifiable, HasApiTokens, HasRoles; // Adding the roles trait here
 
     /**
      * The attributes that are mass assignable.

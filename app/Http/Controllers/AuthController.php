@@ -42,16 +42,14 @@ class AuthController extends Controller
         }
     }
 
-    // User Login
     public function login(Request $request)
     {
-        // Validate the input directly
         $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        // Check if user exists by username
+        // Fetch user and validate credentials
         $user = User::where('username', $request->username)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -60,22 +58,22 @@ class AuthController extends Controller
             ]);
         }
 
-        // Create token
+        // Attach roles
+        $user->load('roles'); // Load roles relationship
+
         $token = $user->createToken('AppName')->plainTextToken;
 
-        // Return token and user details
         return response()->json(['token' => $token, 'user' => $user], 200);
     }
 
+    public function user(Request $request)
+    {
+        // Get the authenticated user using the Auth facade
+        $user = Auth::user()->load('roles'); // Load the roles relationship
 
-public function user(Request $request)
-{
-    // Get the authenticated user using the Auth facade
-    $user = Auth::user();
-
-    // Return the authenticated user
-    return response()->json(['user' => $user], 200);
-}
+        // Return the authenticated user along with their roles
+        return response()->json(['user' => $user], 200);
+    }
 
     // Logout user
     public function logout(Request $request)
