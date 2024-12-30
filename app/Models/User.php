@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // Import Sanctum's HasApiTokens trait
@@ -54,6 +55,12 @@ class User extends Authenticatable
 public function creator()
 {
     return $this->belongsTo(User::class, 'created_by');
+}
+
+
+public function routes(): HasMany
+{
+    return $this->hasMany(Route::class);
 }
 
 }

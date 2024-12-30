@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -41,18 +42,20 @@ class UserController extends Controller
             $query->orderBy($sortField, $sortDirection);
         }
 
-        // Eager load creator (created_by) relationship
-        $query->with('creator');  // Assuming 'creator' is the relationship name for the user who created the record
+        // Eager load roles and creator relationships using Spatie's trait
+        $query->with('roles', 'creator');  // Eager load roles and creator relationships
 
-        // Pagination
-        $perPage = $request->input('perPage', 10); // Default: 10 items per page
-        $users = $query->paginate($perPage);
+        // Fetch all users
+        $users = $query->get(); // Retrieve all records
 
         return response()->json([
             'success' => true,
-            'data' => $users->items(),
-            'totalPages' => $users->lastPage(),
-            'currentPage' => $users->currentPage(),
+            'data' => $users->map(function($user) {
+                // Map roles and creator name to the user object
+                $user->roles = $user->roles->pluck('name'); // Extract role names from the roles relationship
+                $user->creator_name = $user->creator->name ?? 'N/A'; // Set creator name or 'N/A' if not available
+                return $user;
+            }),
         ]);
     }
 
@@ -62,17 +65,19 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        // Validate the incoming data
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'phone' => 'required|string|max:15',  // Adjust max length as necessary
+            'phone' => 'required|string|max:15',
             'username' => 'required|string|max:255|unique:users',
             'password' => 'required|string|min:8',
-            'status' => 'required|in:active,inactive',  // Validates status field
+            'status' => 'required|in:active,inactive',
+            'role' => 'required|exists:roles,name', // Validate role name exists in roles table
         ]);
 
-        // Create the user
+        // Find role by name
+        $role = Role::where('name', $validatedData['role'])->first();
+
         $user = User::create([
             'name' => $validatedData['name'],
             'email' => $validatedData['email'],
@@ -80,34 +85,60 @@ class UserController extends Controller
             'username' => $validatedData['username'],
             'password' => bcrypt($validatedData['password']),
             'status' => $validatedData['status'],
-            'created_by' => auth()->id(), // Assuming you're using authentication and the logged-in user is the creator
+            'role_id' => $role->id,  // Store the role ID
+            'created_by' => auth()->id(), // Assuming you're using authentication
         ]);
 
-        // Return success response
-        return response()->json(['message' => 'User created successfully', 'user' => $user], 201);
+        // Assign the role to the user
+        $user->assignRole($role->name);
+
+        return response()->json(['success' => true, 'user' => $user], 201);
     }
+
 
     /**
      * Update a user's details.
      */
     public function update(Request $request, $id)
-    {
-        $user = User::find($id);
+{
+    // Validate the input data
+    $validatedData = $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $id,
+        'phone' => 'required|string|max:15',
+        'username' => 'required|string|max:255|unique:users,username,' . $id,
+        'password' => 'nullable|string|min:8', // Password can be optional on update
+        'status' => 'required|in:active,inactive',
+        'role' => 'required|exists:roles,name', // Validate role name exists in roles table
+    ]);
 
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
+    // Find the user by ID
+    $user = User::findOrFail($id);
 
-        $validatedData = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'sometimes|required|string|min:8',
-        ]);
+    // Find the role by name
+    $role = Role::where('name', $validatedData['role'])->first();
 
-        $user->update($validatedData);
+    // Update the user details
+    $user->update([
+        'name' => $validatedData['name'],
+        'email' => $validatedData['email'],
+        'phone' => $validatedData['phone'],
+        'username' => $validatedData['username'],
+        'status' => $validatedData['status'],
+        'role_id' => $role->id,  // Update the role ID
+    ]);
 
-        return response()->json(['message' => 'User updated successfully', 'user' => $user], 200);
+    // If password is provided, hash and update it
+    if (!empty($validatedData['password'])) {
+        $user->update(['password' => bcrypt($validatedData['password'])]);
     }
+
+    // Reassign the role to ensure it's updated
+    $user->syncRoles($role->name);
+
+    return response()->json(['success' => true, 'user' => $user], 200);
+}
+
 
     /**
      * Deactivate a user.

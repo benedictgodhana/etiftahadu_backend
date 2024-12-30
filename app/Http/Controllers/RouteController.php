@@ -36,18 +36,25 @@ class RouteController extends Controller
     /**
      * List all available routes.
      */
-   public function index()
-{
-    // Fetch all routes from the database
-    $routes = Route::all();
+    public function index()
+    {
+        $routes = Route::with('user') // Eager load the user relationship
+            ->where('user_id', auth()->id()) // Ensure the authenticated user can only view their own routes
+            ->get(); // Get all the routes for the authenticated user
 
-    // Get the total count of all routes
-
-    return response()->json([
-        'success' => true,
-        'data' => $routes,
-    ]);
-}
+        return response()->json([
+            'success' => true,
+            'data' => $routes->map(function ($route) {
+                return [
+                    'id' => $route->id,
+                    'from' => $route->from,
+                    'to' => $route->to,
+                    'fare' => $route->fare,
+                    'user_name' => $route->user->name,
+                ];
+            }),
+        ]);
+    }
 
 public function getRoutesCount()
 {

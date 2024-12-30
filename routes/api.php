@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardTopupController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TicketTransactionController;
 use App\Http\Controllers\UserController;
@@ -23,7 +24,7 @@ use App\Http\Controllers\UserController;
 
 Route::middleware('auth:sanctum')->group(function () {
 
-
+    Route::get('/roles', [RoleController::class, 'fetchRoles']);
     Route::get('/tickets/{id}/print', [TicketTransactionController::class, 'printReceipt']);
 
     Route::get('/offers', [OfferController::class, 'index']);
@@ -59,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/add-card', [CardController::class, 'store'])->name('add-card');
     Route::post('/fetch-card', [CardController::class, 'fetchCardData']);
     Route::get('/active-cards', [CardController::class, 'fetchActiveCards']);
+    Route::get('/cards', [CardController::class, 'index']);
 
     // Card top-up management
     Route::get('/card-topups', [CardTopupController::class, 'index']);

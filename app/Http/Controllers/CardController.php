@@ -137,4 +137,15 @@ class CardController extends Controller
         }
     }
 
+
+
+    public function index()
+    {
+        // Fetch all cards using the Card model's fetchAllCards method
+        $cards = Card::all();
+
+        // Return JSON response
+        return response()->json($cards);
+    }
+
 }

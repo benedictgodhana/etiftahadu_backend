@@ -3,92 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card Top-Up Notification</title>
+    <title>Card Top-Up Receipt</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #fff;
-            color: #333;
             margin: 0;
             padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
-            border: 1px solid #e0e0e0;
             background-color: #f9f9f9;
         }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px 40px;
+            border: 1px solid #ddd;
+        }
         .header {
-            background-color: #e60000;
-            color: #fff;
-            padding: 20px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0044cc;
+            padding-bottom: 20px;
         }
         .header h1 {
-            margin: 0;
-            font-size: 24px;
+            font-size: 28px;
+            color: #0044cc;
         }
-        .content {
+        .header .logo {
+            width: 80px;
+            height: 80px;
+            background-color: #ddd;
+            border-radius: 50%;
+            background-image: url('/images/logo.png'); /* Replace with actual logo path */
+            background-size: cover;
+            background-position: center;
+        }
+        .details {
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .details .column {
+            width: 48%;
+        }
+        .details p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .details p strong {
+            font-size: 15px;
+        }
+        .table-container {
             margin-top: 20px;
         }
-        .content p {
-            font-size: 16px;
-            line-height: 1.5;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .content ul {
-            list-style-type: none;
-            padding: 0;
+        table th, table td {
+            text-align: left;
+            padding: 10px;
+            border: 1px solid #ddd;
         }
-        .content ul li {
+        table th {
+            background: #f2f2f2;
+        }
+        .summary {
+            margin-top: 20px;
+            text-align: right;
+        }
+        .summary p {
             font-size: 16px;
-            margin-bottom: 10px;
+        }
+        .summary p strong {
+            font-size: 18px;
         }
         .footer {
-            margin-top: 20px;
-            font-size: 14px;
+            margin-top: 40px;
             text-align: center;
-            color: #555;
         }
-        .footer a {
-            color: #e60000;
-            text-decoration: none;
+        .footer p {
+            font-size: 14px;
+            color: #777;
         }
-        .button {
-            display: inline-block;
-            background-color: #e60000;
-            color: #fff;
-            padding: 10px 20px;
-            font-size: 16px;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
+        .footer .thank-you {
+            font-size: 20px;
+            color: #0044cc;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <div class="header">
-            <h1>NAMIBIA CONTRACT HAULAGE - BUS SMART CARD</h1>
+            <h1>TOP-UP RECEIPT</h1>
         </div>
 
-        <div class="content">
-            <p>Hello {{ $name }},</p>
-
-            <p>Your card has been topped up successfully. Here are the details:</p>
-
-            <ul>
-                <li><strong>Amount Topped Up:</strong> NAD {{ number_format($topUp->amount, 2) }}</li>
-                <li><strong>Transaction Reference:</strong> {{ $topUp->transaction_reference }}</li>
-                <li><strong>New Balance:</strong> NAD {{ number_format($newBalance, 2) }}</li>
-            </ul>
-
-            <p>Thank you for using our service!</p>
-
+        <!-- Billing Details -->
+        <div class="details">
+            <div class="column">
+                <p><strong>Namibia Contract Haulage</strong></p>
+                <p>123 Main Street</p>
+                <p>Windhoek, Namibia</p>
+                <p>Email: support@namibiacontracthaulage.com</p>
+            </div>
+            <div class="column">
+                <p><strong>Date:</strong> {{ date('d/m/Y') }}</p>
+                <p><strong>Receipt #:</strong> {{ $topUp->transaction_reference }}</p>
+            </div>
         </div>
 
+        <!-- Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Amount (NAD)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Card Top-Up Amount</td>
+                        <td>{{ number_format($topUp->amount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td>New Balance After Top-Up</td>
+                        <td>{{ number_format($newBalance, 2) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary">
+            <p><strong>Total Top-Up:</strong> NAD {{ number_format($topUp->amount, 2) }}</p>
+        </div>
+
+        <!-- Footer -->
         <div class="footer">
-            <p>If you have any questions, feel free to contact us at <a href="mailto:support@namibiacontracthaulage.com">support@namibiacontracthaulage.com</a>.</p>
+            <p class="thank-you">Thank you for topping up your card!</p>
+            <p>If you have any questions, please contact us at <a href="mailto:support@namibiacontracthaulage.com">support@namibiacontracthaulage.com</a>.</p>
             <p>&copy; 2024 Namibia Contract Haulage</p>
         </div>
     </div>
