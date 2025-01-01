@@ -43,28 +43,33 @@ class AuthController extends Controller
     }
 
     public function login(Request $request)
-    {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required|string',
+{
+    $request->validate([
+        'username' => 'required|string',
+        'password' => 'required|string',
+    ]);
+
+    // Fetch user and validate credentials
+    $user = User::where('username', $request->username)->first();
+
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        throw ValidationException::withMessages([
+            'error' => ['Invalid credentials']
         ]);
-
-        // Fetch user and validate credentials
-        $user = User::where('username', $request->username)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'error' => ['Invalid credentials']
-            ]);
-        }
-
-        // Attach roles
-        $user->load('roles'); // Load roles relationship
-
-        $token = $user->createToken('AppName')->plainTextToken;
-
-        return response()->json(['token' => $token, 'user' => $user], 200);
     }
+
+    // Load roles relationship
+    $user->load('roles');
+
+    // Generate token
+    $token = $user->createToken('AppName')->plainTextToken;
+
+    // Map role names if needed
+    $userRoles = $user->roles->pluck('name'); // Get the role names
+
+    return response()->json(['token' => $token, 'user' => $user, 'roles' => $userRoles], 200);
+}
+
 
     public function user(Request $request)
     {
