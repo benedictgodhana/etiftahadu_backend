@@ -58,13 +58,13 @@ class AuthController extends Controller
         ]);
     }
 
-    // Load roles relationship
+    // Load roles
     $user->load('roles');
 
     // Generate token
     $token = $user->createToken('AppName')->plainTextToken;
 
-    // Map role names if needed
+    // Get role names
     $userRoles = $user->roles->pluck('name'); // Get the role names
 
     return response()->json(['token' => $token, 'user' => $user, 'roles' => $userRoles], 200);
