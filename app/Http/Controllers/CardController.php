@@ -115,7 +115,7 @@ class CardController extends Controller
     {
         try {
             // Fetch all active cards
-            $activeCards = Card::where('status', 'Active')->get();
+            $activeCards = Card::all();
 
             // Count the number of active cards
             $activeCardsCount = $activeCards->count();
