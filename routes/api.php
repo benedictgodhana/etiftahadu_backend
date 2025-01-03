@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\CardTopupController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\TicketTransactionController;
@@ -61,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fetch-card', [CardController::class, 'fetchCardData']);
     Route::get('/active-cards', [CardController::class, 'fetchActiveCards']);
     Route::get('/cards', [CardController::class, 'index']);
+    Route::put('cards/{id}', [CardController::class, 'update']);
 
     // Card top-up management
     Route::get('/card-topups', [CardTopupController::class, 'index']);
@@ -83,3 +87,8 @@ Route::middleware('auth:sanctum')->group(function () {
 // Authentication routes (no authentication required)
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login'])->name('login'); // Explicitly name the route
+// routes/web.php
+Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::get('password/reset/{token}', [ResetPasswordController::class,'showResetForm'])->name('password.reset');
+Route::post('password/reset', [ResetPasswordController::class,'reset'])->name('password.update');
+

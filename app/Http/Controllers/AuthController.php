@@ -70,15 +70,11 @@ class AuthController extends Controller
     return response()->json(['token' => $token, 'user' => $user, 'roles' => $userRoles], 200);
 }
 
-
-    public function user(Request $request)
-    {
-        // Get the authenticated user using the Auth facade
-        $user = Auth::user()->load('roles'); // Load the roles relationship
-
-        // Return the authenticated user along with their roles
-        return response()->json(['user' => $user], 200);
-    }
+public function user(Request $request)
+{
+    $user = Auth::user()->load('roles'); // Ensure roles are loaded if necessary
+    return response()->json(['success' => true, 'user' => $user]);
+}
 
     // Logout user
     public function logout(Request $request)

@@ -5,8 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Card Top-Up Receipt</title>
     <style>
+        /* Import FuturaLT font */
+    @font-face {
+      font-family: "FuturaLT";
+      src: url("/public/fonts/futura-lt/FuturaLT.ttf") format("truetype");
+      font-weight: normal;
+      font-style: normal;
+    }
+
+     @font-face {
+      font-family: "FuturaLT";
+      src: url("/public/fonts/futura-lt/FuturaLT-BoldOblique.ttf") format("truetype");
+      font-weight: bold;
+      font-style: oblique;
+    }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: "FuturaLT", "system-ui", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f9f9f9;
