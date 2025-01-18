@@ -13,6 +13,7 @@ class Offer extends Model
         'user_id',
         'name',
         'expiry',
+        'duration'
     ];
 
     /**
@@ -21,5 +22,15 @@ class Offer extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($offer) {
+            $offer->expiry = now()->addDays($offer->duration);
+        });
     }
 }

@@ -15,6 +15,7 @@ class CardTopUp extends Model
         'amount',
         'transaction_reference',
         'status',
+        'offer_id', // Add this to the fillable array
     ];
 
     // Relationship with the NFC card (one card can have many top-ups)
@@ -29,10 +30,15 @@ class CardTopUp extends Model
         return $this->belongsTo(User::class);
     }
 
+    // Add Offer relationship
+    public function offer()
+    {
+        return $this->belongsTo(Offer::class); // Assuming you have an Offer model
+    }
 
+    // Relationship with the Card (same as nfcCard method, redundant here)
     public function card()
     {
         return $this->belongsTo(Card::class);
     }
-
 }

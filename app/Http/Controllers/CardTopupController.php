@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str; // For generating the transaction reference
 use App\Mail\CardTopUpNotification;
+use App\Models\Offer;
 use Barryvdh\DomPDF\Facade as PDF;
 use Barryvdh\DomPDF\Facade\Pdf as FacadePdf;
 
@@ -21,6 +22,7 @@ class CardTopupController extends Controller
         $validated = $request->validate([
             'card_id' => 'required|exists:nfc_cards,id', // Ensure card exists
             'amount' => 'required|numeric|min:0.01', // Validate amount
+            'offer_id' => 'nullable|exists:offers,id', // Ensure the offer exists if provided
         ]);
 
         try {
@@ -30,8 +32,14 @@ class CardTopupController extends Controller
             // Retrieve the card to be topped up
             $card = Card::findOrFail($validated['card_id']);
 
+            // Retrieve the offer, if provided
+            $offer = $validated['offer_id'] ? Offer::findOrFail($validated['offer_id']) : null;
+
             // Auto-generate the transaction reference (UUID or timestamp)
             $transactionReference = Str::uuid(); // Alternatively, use `time()` or another method
+
+            // Calculate the expiry date based on the offer's duration (if applicable)
+            $expiryDate = $offer ? now()->addDays($offer->duration) : null;
 
             // Create a new top-up record in the card_top_ups table
             $topUp = CardTopUp::create([
@@ -40,6 +48,8 @@ class CardTopupController extends Controller
                 'transaction_reference' => $transactionReference,
                 'status' => 'Active', // You can update this later based on your logic (e.g., 'Pending' during external verification)
                 'user_id' => auth()->id(), // Use the authenticated user's ID
+                'offer_id' => $validated['offer_id'], // Associate with the offer
+                'expiry_date' => $expiryDate, // Set the expiry date
             ]);
 
             // Retrieve the last transaction for this card
@@ -70,6 +80,7 @@ class CardTopupController extends Controller
                 'topUp' => $topUp,
                 'newBalance' => $newBalance,
                 'name' => $card->name,
+                'offer' => $offer->expiry, // Include offer details in the receipt
             ]);
 
             // Send email notification with the PDF receipt as attachment
@@ -95,14 +106,16 @@ class CardTopupController extends Controller
         }
     }
 
+
     public function index()
     {
-        // Fetch all card top-ups with associated card and user data, with pagination (8 records per page)
-        $topups = CardTopup::with(['card', 'user'])->paginate(8);
+        // Fetch all card top-ups with associated card, user, and offer data, with pagination (8 records per page)
+        $topups = CardTopup::with(['card', 'user', 'offer'])->paginate(8);
 
         // Return the data as JSON with pagination info
         return response()->json(['topups' => $topups]);
     }
+
 
     public function show($id)
     {

@@ -11,11 +11,15 @@ class OfferController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
-    {
-        $offers = Offer::all(); // Retrieve all offers
-        return response()->json(['success' => true, 'data' => $offers], 200);
+    public function index() {
+        $offers = Offer::with('user:id,name') // Use `with` to include the user's name
+            ->select('id', 'user_id', 'name', 'duration', 'expiry', 'created_at', 'updated_at', 'deleted_at')
+            ->get();
+
+        return response()->json($offers);
     }
+
+
 
     /**
      * Show the form for creating a new offer.
@@ -34,19 +38,26 @@ class OfferController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'expiry' => 'required|date',
-    ]);
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'duration' => 'required|integer|min:1', // Ensure duration is provided and is a positive integer
+        ]);
 
-    // Automatically add the authenticated user's ID
-    $request->merge(['user_id' => auth()->id()]);
+        // Calculate expiry date based on the current date and duration
+        $expiry = now()->addDays($request->input('duration'));
 
-    $offer = Offer::create($request->all());
+        // Merge additional fields into the request data
+        $request->merge([
+            'user_id' => auth()->id(), // Authenticated user's ID
+            'expiry' => $expiry,
+        ]);
 
-    return response()->json(['success' => true, 'data' => $offer], 201);
-}
+        // Create the offer
+        $offer = Offer::create($request->all());
+
+        return response()->json(['success' => true, 'data' => $offer], 201);
+    }
 
     /**
      * Display the specified offer.

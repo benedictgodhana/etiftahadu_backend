@@ -31,7 +31,6 @@
             margin: 20px auto;
             background: #fff;
             padding: 20px 40px;
-            border: 1px solid #ddd;
         }
         .header {
             display: flex;
@@ -116,19 +115,22 @@
         </div>
 
         <!-- Billing Details -->
-        <div class="details">
-            <div class="column">
-                <p><strong>Namibia Contract Haulage</strong></p>
-                <p>123 Main Street</p>
-                <p>Windhoek, Namibia</p>
-                <p>Email: support@namibiacontracthaulage.com</p>
-            </div>
-            <div class="column">
-                <p><strong>Date:</strong> {{ date('d/m/Y') }}</p>
-                <p><strong>Receipt #:</strong> {{ $topUp->transaction_reference }}</p>
-            </div>
-        </div>
+       <!-- Billing Details -->
+<div class="details">
+    <div class="column">
+        <p><strong>Namibia Contract Haulage</strong></p>
+        <p>123 Main Street</p>
+        <p>Windhoek, Namibia</p>
+        <p>Email: support@namibiacontracthaulage.com</p>
+    </div>
+    <div class="column">
+        <p><strong>Date:</strong> {{ date('d/m/Y') }}</p>
+        <p><strong>Receipt #:</strong> {{ $topUp->transaction_reference }}</p>
+        <p><strong>Offer Expiry:</strong> {{ \Carbon\Carbon::parse($topUp->offer->expiry)->format('d/m/Y') }}</p> <!-- Expiry Date -->
+    </div>
+</div>
 
+<em><p style="color:red;">* Note that this offer is valid for {{$topUp->offer->duration}} days</p></em>
         <!-- Table -->
         <div class="table-container">
             <table>
