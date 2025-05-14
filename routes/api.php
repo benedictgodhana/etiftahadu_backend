@@ -45,7 +45,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/offers/{offer}', [OfferController::class, 'destroy']);
 
     // Ticket transactions
-    Route::get('/ticket-transactions', [TicketTransactionController::class, 'index']);
     Route::post('/ticket', [TicketTransactionController::class, 'store']);
     Route::get('/transactions/total/monthly', [TicketTransactionController::class, 'totalMonthlyTransactions']);
     Route::get('/transactions/total/today', [TicketTransactionController::class, 'totalTodaysTransactions']);
@@ -85,10 +84,10 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Authentication routes (no authentication required)
-Route::post('register', [AuthController::class, 'register']);
-Route::post('login', [AuthController::class, 'login'])->name('login'); // Explicitly name the route
+Route::post('api-register', [AuthController::class, 'register']);
+Route::post('api-login', [AuthController::class, 'login'])->name('api-login'); // Explicitly name the route
 // routes/web.php
 Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
-Route::get('password/reset/{token}', [ResetPasswordController::class,'showResetForm'])->name('password.reset');
-Route::post('password/reset', [ResetPasswordController::class,'reset'])->name('password.update');
+Route::get('password/reset/{token}', [ResetPasswordController::class,'showResetForm'])->name('api-password.reset');
+Route::post('password/reset', [ResetPasswordController::class,'reset'])->name('api-password.update');
 

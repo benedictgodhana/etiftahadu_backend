@@ -38,23 +38,37 @@ class RouteController extends Controller
      */
     public function index()
     {
-        $routes = Route::with('user') // Eager load the user relationship
-            ->where('user_id', auth()->id()) // Ensure the authenticated user can only view their own routes
-            ->get(); // Get all the routes for the authenticated user
+        // Define the query
+        $routesQuery = Route::with('user')
+            ->where('user_id', auth()->id());
 
-        return response()->json([
-            'success' => true,
-            'data' => $routes->map(function ($route) {
-                return [
-                    'id' => $route->id,
-                    'from' => $route->from,
-                    'to' => $route->to,
-                    'fare' => $route->fare,
-                    'user_name' => $route->user->name,
-                ];
-            }),
-        ]);
+        // If the request is coming from an API route
+        if (request()->is('api/*')) {
+            $routes = $routesQuery->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $routes->map(function ($route) {
+                    return [
+                        'id' => $route->id,
+                        'from' => $route->from,
+                        'to' => $route->to,
+                        'fare' => $route->fare,
+                        'user_name' => $route->user->name,
+                    ];
+                }),
+            ]);
+        }
+
+        // Else return paginated results for web
+        $routes = $routesQuery->paginate(10);
+
+        return view('routes.index', compact('routes'));
     }
+
+
+
+
 
 public function getRoutesCount()
 {
@@ -88,16 +102,18 @@ public function getRoutesCount()
             'user_id' => auth()->id(), // Use the authenticated user's ID
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Route created successfully',
-            'data' => $route,
-        ], 201);
-    }
+        // Check if the request expects a JSON response (API)
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Route created successfully',
+                'data' => $route,
+            ], 201);
+        }
 
-    /**
-     * Update an existing route.
-     */
+        // If it's a web request, redirect back with a success message
+        return redirect()->route('routes.index')->with('success', 'Route created successfully!');
+    }
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -118,33 +134,46 @@ public function getRoutesCount()
 
         $route->update($validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Route updated successfully',
-            'data' => $route,
-        ]);
+        // Check if the request expects a JSON response (API)
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Route updated successfully',
+                'data' => $route,
+            ]);
+        }
+
+        // If it's a web request, redirect back with a success message
+        return redirect()->route('routes.index')->with('success', 'Route updated successfully!');
     }
 
     /**
      * Delete a route.
      */
     public function destroy($id)
-    {
-        $route = Route::findOrFail($id);
+{
+    $route = Route::findOrFail($id);
 
-        // Ensure the authenticated user is the one who created the route
-        if ($route->user_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not authorized to delete this route',
-            ], 403);
-        }
+    // Ensure the authenticated user is the one who created the route
+    if ($route->user_id !== auth()->id()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'You are not authorized to delete this route',
+        ], 403);
+    }
 
-        $route->delete();
+    $route->delete();
 
+    // Check if the request expects a JSON response (API)
+    if (request()->wantsJson()) {
         return response()->json([
             'success' => true,
             'message' => 'Route deleted successfully',
         ]);
     }
+
+    // If it's a web request, redirect back with a success message
+    return redirect()->route('routes.index')->with('success', 'Route deleted successfully!');
+}
+
 }

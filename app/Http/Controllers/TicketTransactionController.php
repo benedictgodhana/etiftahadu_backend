@@ -75,70 +75,75 @@ class TicketTransactionController extends Controller
         ], 201);
     }
 
+// Send email after ticket purchase
+protected function sendTicketEmail($card, $route, $amount)
+{
+    // Calculate the current balance from the CardTransaction table
+    $currentBalance = CardTransaction::where('card_id', $card->id)->sum('amount');
 
-    // Send email after ticket purchase
-    protected function sendTicketEmail($card, $route, $amount)
-    {
-        // Calculate the current balance from the CardTransaction table
-        $currentBalance = CardTransaction::where('card_id', $card->id)->sum('amount');
+    // Prepare email data
+    $emailData = [
+        'name' => $card->name,
+        'from' => $route->from,
+        'to' => $route->to,
+        'amount' => $amount,
+        'new_balance' => $currentBalance,
+    ];
 
-        // Calculate the new balance after the transaction (deduct the fare)
-        $newBalance = $currentBalance ;
+    // Generate the PDF receipt with DOMPDF options
+    $pdf = FacadePdf::loadView('emails.ticket_receipt', $emailData);
 
-        // Prepare email data
-        $emailData = [
-            'name' => $card->name,
-            'from' => $route->from,  // Include route name or any other detail
-            'to' => $route->to,  // Include route name or any other detail
-            'amount' => $amount,
-            'new_balance' => $newBalance,  // Pass the new balance after deduction
-        ];
+    $options = $pdf->getDomPDF()->getOptions();
+    $options->set('fontDir', base_path('public/fonts/'));
+    $options->set('fontCache', base_path('public/fonts/'));
+    $options->set('isHtml5ParserEnabled', true); // Enable HTML5 parser
+    $options->set('isPhpEnabled', true); // Enable PHP
+    $options->set('defaultFont', 'sans-serif'); // Set default font (e.g., 'Roboto' if added)
 
-        // Generate the PDF receipt
-        $pdf = FacadePdf::loadView('emails.ticket_receipt', $emailData);
+    // Apply options to the DomPDF instance
+    $pdf->getDomPDF()->setOptions($options);
 
-        // Prepare the email
-        $email = new TicketPurchasedMail($emailData);
+    // Prepare the email
+    $email = new TicketPurchasedMail($emailData);
 
-        // Attach the PDF receipt to the email
-        $email->attachData($pdf->output(), 'receipt.pdf', [
-            'mime' => 'application/pdf',
-        ]);
+    // Attach the PDF receipt to the email
+    $email->attachData($pdf->output(), 'receipt.pdf', [
+        'mime' => 'application/pdf',
+    ]);
 
-        // Send the email with the attached PDF
-        Mail::to($card->email)->send($email);
-    }
+    // Send the email
+    Mail::to($card->email)->send($email);
+}
+
 
     public function index(Request $request)
-    {
-        $query = TicketTransaction::with(['route', 'card']);
+{
+    $query = TicketTransaction::with(['route', 'card']);
 
-        // Filter by ticket number (if provided)
-        if ($request->has('ticket_number') && $request->ticket_number) {
-            $query->where('ticket_number', 'like', '%' . $request->ticket_number . '%');
-        }
-
-        // Filter by route (if provided)
-        if ($request->has('route') && $request->route && $request->route != 'All') {
-            $query->whereHas('route', function($q) use ($request) {
-                $q->where('from', 'like', '%' . $request->route . '%')
-                  ->orWhere('to', 'like', '%' . $request->route . '%');
-            });
-        }
-
-        // Filter by date range (if provided)
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
-        }
-
-        $transactions = $query->get();
-
-        // Debugging: Check the transactions data
-        Log::info('Transactions:', $transactions->toArray());
-
-        return response()->json(['data' => $transactions]);
+    // Filter by ticket number (if provided)
+    if ($request->has('ticket_number') && $request->ticket_number) {
+        $query->where('ticket_number', 'like', '%' . $request->ticket_number . '%');
     }
 
+    // Filter by route (if provided)
+    if ($request->has('route') && $request->route && $request->route != 'All') {
+        $query->whereHas('route', function($q) use ($request) {
+            $q->where('from', 'like', '%' . $request->route . '%')
+              ->orWhere('to', 'like', '%' . $request->route . '%');
+        });
+    }
+
+    // Filter by date range (if provided)
+    if ($request->has('start_date') && $request->has('end_date')) {
+        $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+    }
+
+    $tickets = $query->paginate(10);
+
+    $routes= Route::all(); // Fetch all routes for the filter dropdown
+
+    return view('transactions.index', compact('tickets', 'routes'));
+}
 
     public function totalMonthlyTransactions()
     {

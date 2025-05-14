@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Response;
 
 class CardController extends Controller
 {
-    // Save NFC Card Details
     public function store(Request $request)
     {
         try {
@@ -34,34 +33,44 @@ class CardController extends Controller
                 'tel' => $validated['tel'],
                 'status' => $validated['status'],
                 'serial_number' => $validated['serial_number'],
-                'user_id' => 1, // use the authenticated user ID
+                'user_id' => $user_id ?? 1, // use the authenticated user ID or fallback to 1
             ]);
 
             // Create the initial transaction with an amount of 0 for the card
             $transaction = CardTransaction::create([
                 'card_id' => $nfcCard->id, // associate with the created card
-                'amount' => 0,              // initial amount set to 0
-
+                'amount' => 0, // initial amount set to 0
             ]);
 
-            // Return success response with the NFC card and transaction details
-            return response()->json([
-                'message' => 'NFC card added successfully with initial transaction',
-                'data' => [
-                    'nfc_card' => $nfcCard,
-                    'transaction' => $transaction,
-                ],
-            ], 201);
-
+            // Check if request is AJAX/API or expects JSON
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                // Return JSON response for API/AJAX requests
+                return response()->json([
+                    'message' => 'NFC card added successfully with initial transaction',
+                    'data' => [
+                        'nfc_card' => $nfcCard,
+                        'transaction' => $transaction,
+                    ],
+                ], 201);
+            } else {
+                // For web form submissions, redirect with flash message
+                return redirect()->route('cards.index')
+                    ->with('success', 'NFC card added successfully with initial transaction');
+            }
         } catch (\Exception $e) {
-            // Handle errors and return failure response
-            return response()->json([
-                'message' => 'Failed to save NFC card data',
-                'error' => $e->getMessage(),
-            ], 500);
+            // Handle errors differently based on request type
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Failed to save NFC card data',
+                    'error' => $e->getMessage(),
+                ], 500);
+            } else {
+                return redirect()->back()
+                    ->withErrors(['error' => 'Failed to save NFC card: ' . $e->getMessage()])
+                    ->withInput();
+            }
         }
     }
-
 
 
 
@@ -140,74 +149,218 @@ class CardController extends Controller
         }
     }
 
-
-
     public function index()
     {
-        // Fetch all cards using the Card model's fetchAllCards method
-        $cards = Card::all();
+        // Fetch all cards
+        $cards = Card::paginate(10);
 
-        // Return JSON response
-        return response()->json($cards);
+        // Return a Blade view with the cards data
+        return view('cards.index', compact('cards'));
     }
 
 
-
     public function update(Request $request, $id)
-{
-    try {
-        // Validate the input data
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|max:255',
-            'tel' => 'sometimes|required|string|max:15',
-            'status' => 'sometimes|required|string|in:Active,Inactive',
-            'serial_number' => 'sometimes|required|string|max:50|unique:nfc_cards,serial_number,' . $id,
-            'transaction_amount' => 'sometimes|required|numeric|min:0', // Optional field to update transaction amount
-        ]);
-
-        // Find the NFC card by ID
-        $nfcCard = Card::findOrFail($id);
-
-        // Update the NFC card fields
-        $nfcCard->update([
-            'name' => $validated['name'] ?? $nfcCard->name,
-            'email' => $validated['email'] ?? $nfcCard->email,
-            'tel' => $validated['tel'] ?? $nfcCard->tel,
-            'status' => $validated['status'] ?? $nfcCard->status,
-            'serial_number' => $validated['serial_number'] ?? $nfcCard->serial_number,
-        ]);
-
-        // Optionally update the associated transaction amount
-        if (isset($validated['transaction_amount'])) {
-            $transaction = CardTransaction::where('card_id', $nfcCard->id)->first();
-
-            if ($transaction) {
-                $transaction->update([
-                    'amount' => $validated['transaction_amount'],
-                ]);
-            } else {
-                // Create a transaction if none exists
-                $transaction = CardTransaction::create([
-                    'card_id' => $nfcCard->id,
-                    'amount' => $validated['transaction_amount'],
+    {
+        try {
+            // Normalize status input (make first letter uppercase)
+            if ($request->has('status')) {
+                $request->merge([
+                    'status' => ucfirst(strtolower($request->input('status')))
                 ]);
             }
-        }
 
-        // Return success response
-        return response()->json([
-            'message' => 'NFC card updated successfully',
-            'data' => [
-                'nfc_card' => $nfcCard,
-                'transaction' => $transaction ?? null, // Include transaction if updated
-            ],
+            // Validate the input data
+            $validated = $request->validate([
+                'name' => 'sometimes|nullable|string|max:255',
+                'email' => 'sometimes|nullable|email|max:255',
+                'tel' => 'sometimes|nullable|string|max:15',
+                'status' => 'sometimes|nullable|string|in:Active,Inactive',
+                'serial_number' => 'sometimes|nullable|string|max:50|unique:nfc_cards,serial_number,' . $id,
+                'transaction_amount' => 'sometimes|nullable|numeric|min:0',
+            ]);
+
+            // Find the NFC card by ID
+            $nfcCard = Card::findOrFail($id);
+
+            // Update only provided fields
+            $nfcCard->update(array_filter([
+                'name' => $validated['name'] ?? null,
+                'email' => $validated['email'] ?? null,
+                'tel' => $validated['tel'] ?? null,
+                'status' => $validated['status'] ?? null,
+                'serial_number' => $validated['serial_number'] ?? null,
+            ]));
+
+            // Optionally update or create transaction amount
+            $transaction = null;
+            if (isset($validated['transaction_amount'])) {
+                $transaction = CardTransaction::where('card_id', $nfcCard->id)->first();
+
+                if ($transaction) {
+                    $transaction->update([
+                        'amount' => $validated['transaction_amount'],
+                    ]);
+                } else {
+                    $transaction = CardTransaction::create([
+                        'card_id' => $nfcCard->id,
+                        'amount' => $validated['transaction_amount'],
+                    ]);
+                }
+            }
+
+            // Check if request is AJAX/API or expects JSON
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'NFC card updated successfully',
+                    'data' => [
+                        'nfc_card' => $nfcCard,
+                        'transaction' => $transaction,
+                    ],
+                ]);
+            } else {
+                return redirect()->route('cards.index')
+                    ->with('success', 'NFC card updated successfully');
+            }
+
+        } catch (\Exception $e) {
+            // Handle errors based on request type
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Failed to update NFC card data',
+                    'error' => $e->getMessage(),
+                ], 500);
+            } else {
+                return redirect()->back()
+                    ->withErrors(['error' => 'Failed to update NFC card: ' . $e->getMessage()])
+                    ->withInput();
+            }
+        }
+    }
+
+    public function blockCard($cardId)
+    {
+        try {
+            $card = Card::findOrFail($cardId);
+
+            // Update the card status to 'Blocked'
+            $card->status = 'Blocked';
+            $card->save();
+
+            // Check if the request is for a web or API response
+            if (request()->expectsJson()) {
+                // For mobile (API) return JSON response
+                return response()->json([
+                    'message' => 'Card blocked successfully',
+                    'data' => $card,
+                ], 200);
+            }
+
+            // For web (browser) return a redirect back
+            return back()->with('success', 'Card blocked successfully.');
+
+        } catch (\Exception $e) {
+            // Check if the request is for a web or API response
+            if (request()->expectsJson()) {
+                // For mobile (API) return JSON error response
+                return response()->json([
+                    'message' => 'Failed to block card',
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+
+            // For web (browser) return a redirect back with error message
+            return back()->with('error', 'Failed to block card.');
+        }
+    }
+
+    public function unblockCard($id)
+    {
+        try {
+            $card = Card::findOrFail($id);
+
+            // Unblock the card (update the status or other field as required)
+            $card->status = 'Active'; // Example: Change status to 'Active' (or another status you use for active cards)
+            $card->save();
+
+            // Check if the request is for a web or API response
+            if (request()->expectsJson()) {
+                // For mobile (API) return JSON response
+                return response()->json([
+                    'message' => 'Card successfully unblocked.',
+                    'card' => $card,
+                ]);
+            }
+
+            // For web (browser) return a redirect back
+            return back()->with('success', 'Card successfully unblocked.');
+
+        } catch (\Exception $e) {
+            // Check if the request is for a web or API response
+            if (request()->expectsJson()) {
+                // For mobile (API) return JSON error response
+                return response()->json([
+                    'message' => 'Failed to unblock card.',
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+
+            // For web (browser) return a redirect back with error message
+            return back()->with('error', 'Failed to unblock card.');
+        }
+    }
+
+
+    public function transferCard(Request $request, $cardId)
+{
+    try {
+        // Validate the request data
+        $validated = $request->validate([
+            'receiver_card_id' => 'required|exists:nfc_cards,id', // Ensure receiver card exists
+            'amount' => 'required|numeric|min:0.01', // Validate transfer amount
         ]);
 
-    } catch (\Exception $e) {
-        // Handle errors and return failure response
+        // Retrieve the card to be transferred
+        $card = Card::findOrFail($cardId);
+        $receiverCard = Card::findOrFail($validated['receiver_card_id']);
+
+        // Ensure the sender has sufficient funds
+        if ($card->balance < $validated['amount']) {
+            return response()->json([
+                'message' => 'Insufficient funds',
+            ], 400);
+        }
+
+        // Deduct the amount from the sender's card and add to the receiver's card
+        $card->balance -= $validated['amount'];
+        $receiverCard->balance += $validated['amount'];
+
+        // Save the updated card balances
+        $card->save();
+        $receiverCard->save();
+
+        // Create a new card transaction (optional)
+        CardTransaction::create([
+            'card_id' => $card->id,
+            'amount' => -$validated['amount'], // Deducted amount from sender
+            'transaction_type' => 'Transfer', // Transaction type for transfer
+        ]);
+        CardTransaction::create([
+            'card_id' => $receiverCard->id,
+            'amount' => $validated['amount'], // Added amount to receiver
+            'transaction_type' => 'Transfer', // Transaction type for transfer
+        ]);
+
+        // Return a success response
         return response()->json([
-            'message' => 'Failed to update NFC card data',
+            'message' => 'Card transfer successful',
+            'sender_balance' => $card->balance,
+            'receiver_balance' => $receiverCard->balance,
+        ], 200);
+
+    } catch (\Exception $e) {
+        // Handle exception and return an error response
+        return response()->json([
+            'message' => 'Failed to transfer card',
             'error' => $e->getMessage(),
         ], 500);
     }

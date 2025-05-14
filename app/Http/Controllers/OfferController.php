@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Offer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class OfferController extends Controller
 {
@@ -11,13 +12,36 @@ class OfferController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index() {
-        $offers = Offer::with('user:id,name') // Use `with` to include the user's name
-            ->select('id', 'user_id', 'name', 'duration', 'expiry', 'created_at', 'updated_at', 'deleted_at')
-            ->get();
+    public function index()
+    {
+        if (request()->wantsJson()) {
+            $offers = Offer::with('user:id,name')
+                ->select('id', 'user_id', 'name', 'duration', 'expiry', 'created_at', 'updated_at', 'deleted_at', 'percentage')
+                ->get();
 
-        return response()->json($offers);
+            // Log the authenticated user and offer details
+            Log::info('API offers request', [
+                'requested_by_user_id' => auth()->id(),
+                'offer_count' => $offers->count(),
+                'creator_names' => $offers->pluck('user.name')->unique()->values(),
+                'offers' => $offers->toArray()
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $offers
+            ]);
+        }
+
+        // Paginate for web view
+        $offers = Offer::with('user:id,name')
+            ->select('id', 'user_id', 'name', 'duration', 'expiry', 'created_at', 'updated_at', 'deleted_at', 'percentage')
+            ->paginate(10);
+
+        return view('offers.index', compact('offers'));
     }
+
+
 
 
 
@@ -41,23 +65,26 @@ class OfferController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'duration' => 'required|integer|min:1', // Ensure duration is provided and is a positive integer
+            'duration' => 'required|integer|min:1',
+            'percentage' => 'required|numeric|min:0|max:100',
         ]);
 
-        // Calculate expiry date based on the current date and duration
         $expiry = now()->addDays($request->input('duration'));
 
-        // Merge additional fields into the request data
         $request->merge([
-            'user_id' => auth()->id(), // Authenticated user's ID
+            'user_id' => auth()->id(),
             'expiry' => $expiry,
         ]);
 
-        // Create the offer
         $offer = Offer::create($request->all());
 
-        return response()->json(['success' => true, 'data' => $offer], 201);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'data' => $offer], 201);
+        }
+
+        return back()->with('success', 'Offer created successfully!');
     }
+
 
     /**
      * Display the specified offer.
@@ -93,12 +120,26 @@ class OfferController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'expiry' => 'required|date',
+            'percentage' => 'nullable|numeric|min:0|max:100',
+            'duration' => 'nullable|integer|min:1', // In case duration is updated
         ]);
+
+        // Optional: recalculate expiry if duration is provided
+        if ($request->filled('duration')) {
+            $request->merge([
+                'expiry' => now()->addDays($request->input('duration')),
+            ]);
+        }
 
         $offer->update($request->all());
 
-        return response()->json(['success' => true, 'data' => $offer], 200);
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'data' => $offer], 200);
+        }
+
+        return back()->with('success', 'Offer updated successfully!');
     }
+
 
     /**
      * Remove the specified offer from storage.
@@ -107,9 +148,14 @@ class OfferController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(Offer $offer)
-    {
-        $offer->delete();
+{
+    $offer->delete();
 
+    if (request()->expectsJson()) {
         return response()->json(['success' => true, 'message' => 'Offer deleted successfully.'], 200);
     }
+
+    return back()->with('success', 'Offer deleted successfully!');
+}
+
 }

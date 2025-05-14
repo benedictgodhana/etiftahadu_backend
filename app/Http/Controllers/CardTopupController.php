@@ -75,36 +75,58 @@ class CardTopupController extends Controller
             // Commit the transaction
             DB::commit();
 
-            // Generate the PDF receipt
+            // Set the DomPDF options for fonts
             $pdf = FacadePdf::loadView('emails.card_top_up', [
                 'topUp' => $topUp,
                 'newBalance' => $newBalance,
                 'name' => $card->name,
-                'offer' => $offer->expiry, // Include offer details in the receipt
+                'offer' => $offer ? $offer->expiry : null, // Include offer details in the receipt
             ]);
 
-            // Send email notification with the PDF receipt as attachment
+            // Access DomPDF options and set custom font directories
+            $options = $pdf->getDomPDF()->getOptions();
+            $options->set('fontDir', base_path('public/fonts/'));
+            $options->set('fontCache', base_path('public/fonts/'));
+            $options->set('isHtml5ParserEnabled', true); // Enable HTML5 parser for better CSS handling
+            $options->set('isPhpEnabled', true); // Enable PHP if needed for advanced operations
+            $options->set('defaultFont', 'sans-serif'); // Use your font, e.g., 'Roboto', 'Arial'
+
+            // Reapply options to the PDF instance
+            $pdf->getDomPDF()->setOptions($options);
+
+            // Send email notification with the PDF receipt as an attachment
             Mail::to($card->email)->send(new CardTopUpNotification($topUp, $newBalance, $card->name, $pdf));
 
-            // Return a success response
-            return response()->json([
-                'message' => 'Card successfully topped up',
-                'data' => $topUp,
-                'new_balance' => $newBalance,
-                'name' => $card->name,
-            ], 201);
+            // Check if it's an API request or web request and respond accordingly
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Card successfully topped up',
+                    'data' => $topUp,
+                    'new_balance' => $newBalance,
+                    'name' => $card->name,
+                ], 201);
+            } else {
+                // Redirect back with success message for web requests
+                return redirect()->back()->with('success', 'Card successfully topped up');
+            }
 
         } catch (\Exception $e) {
             // Rollback the transaction on exception
             DB::rollBack();
 
-            // Return error response
-            return response()->json([
-                'message' => 'Failed to top up the card',
-                'error' => $e->getMessage(),
-            ], 500);
+            // Check if it's an API request or web request and respond accordingly
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Failed to top up the card',
+                    'error' => $e->getMessage(),
+                ], 500);
+            } else {
+                // Redirect back with error message for web requests
+                return redirect()->back()->with('error', 'Failed to top up the card: ' . $e->getMessage());
+            }
         }
     }
+
 
 
     public function index()
@@ -112,8 +134,12 @@ class CardTopupController extends Controller
         // Fetch all card top-ups with associated card, user, and offer data, with pagination (8 records per page)
         $topups = CardTopup::with(['card', 'user', 'offer'])->paginate(8);
 
-        // Return the data as JSON with pagination info
-        return response()->json(['topups' => $topups]);
+        // Fetch all cards and offers
+        $cards = Card::all();
+        $offers = Offer::all();
+
+        // Return the view with all necessary data
+        return view('card-topups.index', compact('topups', 'cards', 'offers'));
     }
 
 

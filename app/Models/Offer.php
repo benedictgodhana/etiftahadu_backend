@@ -13,7 +13,9 @@ class Offer extends Model
         'user_id',
         'name',
         'expiry',
-        'duration'
+        'duration',
+        'percentage',
+
     ];
 
     /**
@@ -33,4 +35,10 @@ class Offer extends Model
             $offer->expiry = now()->addDays($offer->duration);
         });
     }
+
+
+    protected $casts = [
+        'expiry' => 'datetime', // This will cast the expiry attribute to a Carbon instance
+        'created_at' => 'datetime',
+    ];
 }

@@ -38,24 +38,21 @@ class UserController extends Controller
 
         // Optional: Apply sorting
         if ($sortField = $request->input('sortField')) {
-            $sortDirection = $request->input('sortDirection', 'asc'); // Default sort direction: ascending
+            $sortDirection = $request->input('sortDirection', 'asc');
             $query->orderBy($sortField, $sortDirection);
         }
 
-        // Eager load roles and creator relationships using Spatie's trait
-        $query->with('roles', 'creator');  // Eager load roles and creator relationships
+        // Eager load roles and creator relationships
+        $query->with('roles', 'creator');
 
-        // Fetch all users
-        $users = $query->get(); // Retrieve all records
+        $users = $query->paginate(10);
 
-        return response()->json([
-            'success' => true,
-            'data' => $users->map(function($user) {
-                // Map roles and creator name to the user object
-                $user->roles = $user->roles->pluck('name'); // Extract role names from the roles relationship
-                $user->creator_name = $user->creator->name ?? 'N/A'; // Set creator name or 'N/A' if not available
-                return $user;
-            }),
+        // Get all available roles for dropdowns or assignment
+        $roles = Role::all();
+
+        return view('users.index', [
+            'users' => $users,
+            'roles' => $roles,
         ]);
     }
 
@@ -72,10 +69,9 @@ class UserController extends Controller
             'username' => 'required|string|max:255|unique:users',
             'password' => 'required|string|min:8',
             'status' => 'required|in:active,inactive',
-            'role' => 'required|exists:roles,name', // Validate role name exists in roles table
+            'role' => 'required|exists:roles,name',
         ]);
 
-        // Find role by name
         $role = Role::where('name', $validatedData['role'])->first();
 
         $user = User::create([
@@ -85,15 +81,15 @@ class UserController extends Controller
             'username' => $validatedData['username'],
             'password' => bcrypt($validatedData['password']),
             'status' => $validatedData['status'],
-            'role_id' => $role->id,  // Store the role ID
-            'created_by' => auth()->id(), // Assuming you're using authentication
+            'role_id' => $role->id,
+            'created_by' => auth()->id(),
         ]);
 
-        // Assign the role to the user
         $user->assignRole($role->name);
 
-        return response()->json(['success' => true, 'user' => $user], 201);
+        return redirect()->back()->with('success', 'User created successfully.');
     }
+
 
 
     /**

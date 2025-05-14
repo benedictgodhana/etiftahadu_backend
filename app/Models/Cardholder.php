@@ -11,7 +11,7 @@ class Cardholder extends Model
     use HasFactory, SoftDeletes;
 
     // The table associated with the model
-    protected $table = 'cardholders';
+    protected $table = 'nfc_cards';
 
     // The attributes that are mass assignable
     protected $fillable = [
